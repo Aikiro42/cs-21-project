@@ -3,23 +3,32 @@
 // alu.sv
 // used by datapath
 // uses nothing
+// sll implementation: https://stackoverflow.com/a/34100023/9035578
+// sll is done in alu
 module alu(input  logic [31:0] a, b,
+           input  logic [4:0] shamt,
            input  logic [2:0]  alucontrol,
            output logic [31:0] result,
            output logic        zero);
   
-  logic [31:0] condinvb, sum;
+  // logic [31:0] condinvb, sum;
+  logic [31:0] isdiff, sum;
 
-  assign condinvb = alucontrol[2] ? ~b : b;
-  assign sum = a + condinvb + alucontrol[2];
- 
+  assign isdiff = alucontrol[2] ? ~b : b;
+  assign sum = a + isdiff + alucontrol[2];
+
   always_comb
-    case (alucontrol[1:0])
-      2'b00: result = a & b;
-      2'b01: result = a | b;
-      2'b10: result = sum;
-      2'b11: result = sum[31];
+    case (alucontrol[2:0])
+      3'b000: result = a & b;       // AND
+      3'b001: result = a | b;       // OR
+      3'b010: result = sum;         // ADD
+      3'b011: result = b << shamt;  // SLL
+      3'b110: result = sum;         // SUB
+      3'b111: result = sum[31];     // SLT
+      default: result = 32'bX;
     endcase
+
+  // result = result << shamt;
 
   assign zero = (result == 32'b0);
 endmodule
@@ -147,7 +156,7 @@ module datapath(input  logic        clk, reset,
 
   // ALU logic
   mux2 #(32)  srcbmux(writedata, signimm, alusrc, srcb);
-  alu         alu(srca, srcb, alucontrol, aluout, zero);
+  alu         alu(srca, srcb, instr[10:6], alucontrol, aluout, zero);
 endmodule
 
 // maindec.sv
@@ -189,6 +198,7 @@ module aludec(input  logic [5:0] funct,
       2'b00: alucontrol <= 3'b010;  // add (for lw/sw/addi)
       2'b01: alucontrol <= 3'b110;  // sub (for beq)
       default: case(funct)          // R-type instructions
+          6'b000000: alucontrol <= 3'b011; // sll
           6'b100000: alucontrol <= 3'b010; // add
           6'b100010: alucontrol <= 3'b110; // sub
           6'b100100: alucontrol <= 3'b000; // and
