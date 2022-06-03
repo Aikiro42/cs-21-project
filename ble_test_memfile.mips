@@ -1,0 +1,14 @@
+# Instruction             # Machine Code - Binary                      # Machine Code - Hex     # Expected Cycle
+add $1, $0, 0xZ           # 001000 00000 00001 0000 0000 0000 000Z     # 2001000Z               # 1
+addi $2, $0, 0x2          # 001000 00000 00010 0000 0000 0000 0010     # 20020002               # 2
+add $3, $0, $0            # 000000 00000 00000 00011 00000 100000      # 00001820               # 3
+ble $1, $2, 0x3           # 011111 00001 00010 0000 0000 0000 0011     # 7C220003               # 4
+addi $3, $3, 0x1          # 001000 00011 00011 0000 0000 0000 0001     # 20630001
+addi $3, $3, 0x1          # 001000 00011 00011 0000 0000 0000 0001     # 20630001
+addi $3, $3, 0x1          # 001000 00011 00011 0000 0000 0000 0001     # 20630001
+add $2, $2, $3            # 000000 00010 00011 00010 00000 100000      # 00431020               # 5
+
+# if $1 <= $2 then program is done in 5 cycles, and writedata must be 0x2
+# else, program is done in 8 cycles and writedata must be 0x5
+
+# use integrity_testbench_2.sv to test
