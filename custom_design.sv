@@ -53,6 +53,16 @@ module signext(input  logic [15:0] a,
   assign y = {{16{a[15]}}, a};
 endmodule
 
+// zeroext.sv
+// used by datapath
+// uses nothing
+module zeroext(input  logic [15:0] a,
+               output logic [31:0] y);
+              
+  assign y = {16'b0, a};
+endmodule
+
+
 // regfile.v
 // Register file for the single-cycle and multicycle processors
 // used by datapath
@@ -124,7 +134,7 @@ module datapath(input  logic        clk, reset,
                 input  logic        memtoreg, pcsrc,
                 input  logic        alusrc, regdst,
                 input  logic        regwrite, jump,
-                input  logic        lessequal,
+                input  logic        lessequal, zero_or_a, is_li,
                 input  logic [2:0]  alucontrol,
                 output logic        zero,
                 output logic [31:0] pc,
@@ -134,8 +144,8 @@ module datapath(input  logic        clk, reset,
 
   logic [4:0]  writereg;
   logic [31:0] pcnext, pcnextbr, pcplus4, pcbranch;
-  logic [31:0] signimm, signimmsh;
-  logic [31:0] srca, srcb;
+  logic [31:0] sign_extended, zero_extended, signimm, signimmsh;
+  logic [31:0] srca, srcb, srcx;
   logic [31:0] result;
 
   logic is_equal;
@@ -151,14 +161,18 @@ module datapath(input  logic        clk, reset,
 
   // register file logic
   regfile     rf(clk, regwrite, instr[25:21], instr[20:16], 
-                 writereg, result, srca, writedata);
+                 writereg, result, srcx, writedata);
   mux2 #(5)   wrmux(instr[20:16], instr[15:11],
                     regdst, writereg);
   mux2 #(32)  resmux(aluout, readdata, memtoreg, result);
-  signext     se(instr[15:0], signimm);
+  signext     se(instr[15:0], sign_extended);
+  zeroext     ze(instr[15:0], zero_extended);
+
+  mux2 #(32)  zero_or_sign(zero_extended, sign_extended, ~is_li, signimm);
 
   // ALU logic
   mux2 #(32)  srcbmux(writedata, signimm, alusrc, srcb);
+  mux2 #(32)  zero_or_a_mux(32'b0, srcx, zero_or_a, srca);
   alu         alu(srca, srcb, instr[10:6], alucontrol, aluout, is_equal);
 
   assign zero = lessequal ? is_equal | aluout[31] : is_equal;
@@ -173,24 +187,25 @@ module maindec(input  logic [5:0] op,
                output logic       branch, alusrc,
                output logic       regdst, regwrite,
                output logic       jump,
-               output logic       lessequal,
+               output logic       lessequal, zero_or_a, is_li,
                output logic [1:0] aluop);
 
-  logic [9:0] controls;
+  logic [11:0] controls;
 
   assign {regwrite, regdst, alusrc, branch, memwrite,
-          memtoreg, jump, lessequal, aluop} = controls;
+          memtoreg, jump, lessequal, zero_or_a, is_li, aluop} = controls;
 
   always_comb
     case(op)
-      6'b000000: controls <= 10'b1100000010; // RTYPE
-      6'b100011: controls <= 10'b1010010000; // LW
-      6'b101011: controls <= 10'b0010100000; // SW
-      6'b000100: controls <= 10'b0001000001; // BEQ
-      6'b011111: controls <= 10'b0001000101; // BLE
-      6'b001000: controls <= 10'b1010000000; // ADDI
-      6'b000010: controls <= 10'b0000001000; // J
-      default:   controls <= 10'bxxxxxxxxxx; // illegal op
+      6'b000000: controls <= 12'b110000001010; // RTYPE
+      6'b100011: controls <= 12'b101001001000; // LW
+      6'b101011: controls <= 12'b001010001000; // SW
+      6'b000100: controls <= 12'b000100001001; // BEQ
+      6'b011111: controls <= 12'b000100011001; // BLE
+      6'b001000: controls <= 12'b101000001000; // ADDI
+      6'b000010: controls <= 12'b000000101000; // J
+      6'b010001: controls <= 12'b101000000100; // LI
+      default:   controls <= 12'bxxxxxxxxxxxx; // illegal op
     endcase
 endmodule
 
@@ -227,14 +242,14 @@ module controller(input  logic [5:0] op, funct,
                   output logic       pcsrc, alusrc,
                   output logic       regdst, regwrite,
                   output logic       jump,
-                  output logic       lessequal,
+                  output logic       lessequal, zero_or_a, is_li,
                   output logic [2:0] alucontrol);
 
   logic [1:0] aluop;
   logic       branch;
 
   maindec md(op, memtoreg, memwrite, branch,
-             alusrc, regdst, regwrite, jump, lessequal, aluop);
+             alusrc, regdst, regwrite, jump, lessequal, zero_or_a, is_li, aluop);
 
   aludec  ad(funct, aluop, alucontrol);
 
@@ -252,16 +267,18 @@ module mips(input  logic        clk, reset,
             input  logic [31:0] readdata);
 
   logic       memtoreg, alusrc, regdst, 
-              regwrite, jump, pcsrc, zero, lessequal;
+              regwrite, jump, pcsrc, zero,
+              lessequal, zero_or_a, is_li;
   logic [2:0] alucontrol;
 
   controller c(instr[31:26], instr[5:0], zero,
                memtoreg, memwrite, pcsrc,
-               alusrc, regdst, regwrite, jump, lessequal,
+               alusrc, regdst, regwrite, jump,
+               lessequal, zero_or_a, is_li,
                alucontrol);
   datapath dp(clk, reset, memtoreg, pcsrc,
               alusrc, regdst, regwrite, jump,
-              lessequal,
+              lessequal, zero_or_a, is_li,
               alucontrol,
               zero, pc, instr,
               aluout, writedata, readdata);
