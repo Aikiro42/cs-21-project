@@ -1,0 +1,31 @@
+# Instruction           # Machine Code - Binary                     # Machine Code - Hex    # Comment
+li $1, 0x0010           # 010001 00000 00001 0000 0000 0001 0000    # 44010010              # load 16 to register $1 to (memaddress)
+li $2, 0x5EED           # 010001 00000 00010 0101 1110 1110 1101    # 44025EED              # load 0x5EEDC0DE to register $2
+sll $2, $2, 16          # 000000 00000 00010 00010 10000 000000     # 00021400              # load 0x5EEDC0DE to register $2
+addiu $2, $2, 0xC0DE    # 001001 00010 00010 1100 0000 1101 1110    # 2442C0DE              # load 0x5EEDC0DE to register $2 (addiu coz otherwise 0x5EECC0DE is stored)
+sw $2, 0($1)            # 101011 00001 00010 0000 0000 0000 0000    # AC220000              # store 0x5EEDC0DE into memory address 16 (RAM[16] <= 0x5EEDC0DE)
+lw $3, 0($1)            # 100011 00001 00011 0000 0000 0000 0000    # 8C230000              # load word from memory address 16 to register $3
+addi $3, $3, 0          # 001000 00011 00011 0000 0000 0000 0000    # 20630000              # probe `writedata` to check if contents of register $3 is desired
+add $2, $0, $0          # 000000 00000 00000 00010 00000 100000     # 00001020              # reset register $2
+li $2, 0xBA             # 010001 00000 00010 0000 0000 1011 1010    # 440200BA              # load byte 0xBA to register $2
+sb $2, 2($1)            # 101000 00001 00010 0000 0000 0000 0010    # A0220002              # edit 3rd byte (big endian) of memory address 16 to that of register $2 (0xBA)
+lw $3, 0($1)            # 100011 00001 00011 0000 0000 0000 0000    # 8C230000              # load word to register $3
+addi $3, $3, 0          # 001000 00011 00011 0000 0000 0000 0000    # 20630000              # check if $3 = 0x5EEDBADE
+add $2, $0, $0          # 000000 00000 00000 00010 00000 100000     # 00001020              # reset register $2
+li $2, 0xBE             # 010001 00000 00010 0000 0000 1011 1110    # 440200BE              # load byte 0xBE to register $2
+sb $2, 3($1)            # 101000 00001 00010 0000 0000 0000 0011    # A0220003              # edit 4th byte of memory address 16 to be 0xBE
+lw $3, 0($1)            # 100011 00001 00011 0000 0000 0000 0000    # 8C230000              # load word to register $t3
+addi $3, $3, 0          # 001000 00011 00011 0000 0000 0000 0000    # 20630000              # check if $3 = 0x5EEDBABE
+nop                                                                 # 00000000              # end operation; waveform shows XXX after this instruction
+
+
+
+# $1 = 16         (this will be the memory address we'll be writing to, in decimal)
+# $2 = 0x5EEDC0DE (this will be the word we'll store to memory address 16)
+# $3 = whatever we load from mem[16]; we'll use this register to check if `sb` works
+
+# This code turns 0x5EEDC0DE to 0x5EEDBABE via `sb`
+
+# `addi $3, $3, 0` lets us check the memory contents of register $3 via `writedata`
+
+# Test with integrity_testbench_2.sv

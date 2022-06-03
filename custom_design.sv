@@ -187,25 +187,27 @@ module maindec(input  logic [5:0] op,
                output logic       branch, alusrc,
                output logic       regdst, regwrite,
                output logic       jump,
-               output logic       lessequal, zero_or_a, is_li,
+               output logic       lessequal, zero_or_a, is_li, store_byte,
                output logic [1:0] aluop);
 
-  logic [11:0] controls;
+  logic [12:0] controls;
 
   assign {regwrite, regdst, alusrc, branch, memwrite,
-          memtoreg, jump, lessequal, zero_or_a, is_li, aluop} = controls;
+          memtoreg, jump, lessequal, zero_or_a, is_li, store_byte, aluop} = controls;
 
   always_comb
     case(op)
-      6'b000000: controls <= 12'b110000001010; // RTYPE
-      6'b100011: controls <= 12'b101001001000; // LW
-      6'b101011: controls <= 12'b001010001000; // SW
-      6'b000100: controls <= 12'b000100001001; // BEQ
-      6'b011111: controls <= 12'b000100011001; // BLE
-      6'b001000: controls <= 12'b101000001000; // ADDI
-      6'b000010: controls <= 12'b000000101000; // J
-      6'b010001: controls <= 12'b101000000100; // LI
-      default:   controls <= 12'bxxxxxxxxxxxx; // illegal op
+      6'b000000: controls <= 13'b1100000010010; // RTYPE
+      6'b100011: controls <= 13'b1010010010000; // LW
+      6'b101011: controls <= 13'b0010100010000; // SW
+      6'b101000: controls <= 13'b0010100010100; // SB
+      6'b000100: controls <= 13'b0001000010001; // BEQ
+      6'b011111: controls <= 13'b0001000110001; // BLE
+      6'b001000: controls <= 13'b1010000010000; // ADDI
+      6'b001001: controls <= 13'b1010000011000; // ADDIU
+      6'b000010: controls <= 13'b0000001010000; // J
+      6'b010001: controls <= 13'b1010000001000; // LI
+      default:   controls <= 13'bxxxxxxxxxxxxx; // illegal op
     endcase
 endmodule
 
@@ -242,14 +244,14 @@ module controller(input  logic [5:0] op, funct,
                   output logic       pcsrc, alusrc,
                   output logic       regdst, regwrite,
                   output logic       jump,
-                  output logic       lessequal, zero_or_a, is_li,
+                  output logic       lessequal, zero_or_a, is_li, store_byte,
                   output logic [2:0] alucontrol);
 
   logic [1:0] aluop;
   logic       branch;
 
   maindec md(op, memtoreg, memwrite, branch,
-             alusrc, regdst, regwrite, jump, lessequal, zero_or_a, is_li, aluop);
+             alusrc, regdst, regwrite, jump, lessequal, zero_or_a, is_li, store_byte, aluop);
 
   aludec  ad(funct, aluop, alucontrol);
 
@@ -262,7 +264,7 @@ endmodule
 module mips(input  logic        clk, reset,
             output logic [31:0] pc,
             input  logic [31:0] instr,
-            output logic        memwrite,
+            output logic        memwrite, store_byte,
             output logic [31:0] aluout, writedata,
             input  logic [31:0] readdata);
 
@@ -274,7 +276,7 @@ module mips(input  logic        clk, reset,
   controller c(instr[31:26], instr[5:0], zero,
                memtoreg, memwrite, pcsrc,
                alusrc, regdst, regwrite, jump,
-               lessequal, zero_or_a, is_li,
+               lessequal, zero_or_a, is_li, store_byte,
                alucontrol);
   datapath dp(clk, reset, memtoreg, pcsrc,
               alusrc, regdst, regwrite, jump,
@@ -301,16 +303,25 @@ endmodule
 // dmem.sv
 // used by top.sv
 // uses nothing
-module dmem(input  logic        clk, we,
+module dmem(input  logic        clk, we, store_byte,
             input  logic [31:0] a, wd,
             output logic [31:0] rd);
 
   logic [31:0] RAM[63:0];
+  logic [31:0] wordmod_mask, wordmod, modded_word;
+  int shift;
+
+  assign shift = a[1:0] * 8;
+
+  assign wordmod = {wd[7:0], 24'b0} >> shift;
+  assign wordmod_mask = 'hFF000000 >> shift;
 
   assign rd = RAM[a[31:2]]; // word aligned
 
+  assign modded_word = (rd & ~wordmod_mask) | wordmod;
+
   always_ff @(posedge clk)
-    if (we) RAM[a[31:2]] <= wd;
+    if (we) RAM[a[31:2]] <= store_byte ? modded_word : wd;
 endmodule
 
 // top.sv
@@ -320,10 +331,11 @@ module top(input  logic        clk, reset,
            output logic        memwrite);
 
   logic [31:0] pc, instr, readdata;
+  logic store_byte;
   
   // instantiate processor and memories
-  mips mips(clk, reset, pc, instr, memwrite, dataadr, 
+  mips mips(clk, reset, pc, instr, memwrite, store_byte, dataadr, 
             writedata, readdata);
   imem imem(pc[7:2], instr);
-  dmem dmem(clk, memwrite, dataadr, writedata, readdata);
+  dmem dmem(clk, memwrite, store_byte, dataadr, writedata, readdata);
 endmodule
