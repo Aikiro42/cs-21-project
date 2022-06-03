@@ -22,7 +22,7 @@ module alu(input  logic [31:0] a, b,
       3'b000: result = a & b;       // AND
       3'b001: result = a | b;       // OR
       3'b010: result = sum;         // ADD
-      3'b011: result = b << shamt;  // SLL
+      3'b011: result = b << shamt;  // SLL  (rt is shifted)
       3'b110: result = sum;         // SUB
       3'b111: result = sum[31];     // SLT
       default: result = 32'bX;
