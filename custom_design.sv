@@ -161,7 +161,7 @@ module datapath(input  logic        clk, reset,
   mux2 #(32)  srcbmux(writedata, signimm, alusrc, srcb);
   alu         alu(srca, srcb, instr[10:6], alucontrol, aluout, is_equal);
 
-  assign zero = lessequal ? is_equal | aluout[0] : is_equal;
+  assign zero = lessequal ? is_equal | aluout[31] : is_equal;
 
 endmodule
 
