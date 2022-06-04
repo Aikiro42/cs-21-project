@@ -13,16 +13,20 @@ module alu(input  logic [31:0] a, b,
   
   // logic [31:0] condinvb, sum;
   logic [31:0] isdiff, sum;
+  logic [5:0] zfrshift;
 
   assign isdiff = alucontrol[2] ? ~b : b;
   assign sum = a + isdiff + alucontrol[2];
-
+  
+  assign zfrshift = b[4:0] + 1;
+  
   always_comb
     case (alucontrol[2:0])
       3'b000: result = a & b;       // AND
       3'b001: result = a | b;       // OR
       3'b010: result = sum;         // ADD
       3'b011: result = b << shamt;  // SLL  (rt is shifted)
+      3'b100: result = (a >> zfrshift) << zfrshift;  // zfr
       3'b110: result = sum;         // SUB
       3'b111: result = sum[31];     // SLT
       default: result = 32'bX;
@@ -224,6 +228,7 @@ module aludec(input  logic [5:0] funct,
       2'b01: alucontrol <= 3'b110;  // sub (for beq)
       default: case(funct)          // R-type instructions
           6'b000000: alucontrol <= 3'b011; // sll
+          6'b110011: alucontrol <= 3'b100; // zfr
           6'b100000: alucontrol <= 3'b010; // add
           6'b100010: alucontrol <= 3'b110; // sub
           6'b100100: alucontrol <= 3'b000; // and

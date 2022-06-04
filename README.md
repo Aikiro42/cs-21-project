@@ -2,28 +2,29 @@
 
 Repository of CS 21 project where I am instructed to add features to an incomplete single-cycle MIPS datapath
 
-Total score so far: 55 points
+## TODO
+- Documentation
+    - Filename: `alvarado_enriqueluis_201911112_lab1.pdf`
+- Instruction Video:
+    - Per instruction: 
+        - HDL Edits
+        - Testbench
+        - Test Code
+        - Demonstration
+- Zip this repo up
 
 ## Completed Features
 
 ### Normal Instructions:
 
 - `sll` _(15 points)_
+- `sb` _(15 points)_
 
 ### Pseudo-instructions
 
 - `ble` _(20 points)_
 - `li` _(20 points)_
-
-## Features to complete
-
-### Normal Instructions:
-
-- `sb`
-
-### Custom instructions
-
-- `zfr` (Zero-from-right)
+- Custom instruction: `zfr` _(30 points)_
 
 ## MIPS-ML Syntax
 
@@ -36,4 +37,5 @@ Total score so far: 55 points
 |`sw <rt>, <imm>(<rs>)`     |`101011 <rs[5]> <rt[5]> <imm[16]>`
 |`lw <rt>, <imm>(<rs>)`     |`100011 <rs[5]> <rt[5]> <imm[16]>`
 |`sb <rt>, <imm>(<rs>)`     |`101000 <rs[5]> <rt[5]> <imm[16]>`
-|`add <rd>, <rs>, <rt>`     |`000000 <rs[5]> <rt[5]> <rd[5]> 00000 100000`
+|`add <rd>, <rs>, <rt>`     |`000000 <rs[5]> <rt[5]> <rd[5]> XXXXX 100000`
+|`zfr <rd>, <rs>, <rt>`     |`000000 <rs[5]> <rt[5]> <rd[5]> XXXXX 110011`
