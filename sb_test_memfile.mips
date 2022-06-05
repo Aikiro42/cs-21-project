@@ -12,7 +12,7 @@ sb $2, 2($1)            # 101000 00001 00010 0000 0000 0000 0010    # A0220002  
 lw $3, 0($1)            # 100011 00001 00011 0000 0000 0000 0000    # 8C230000              # load word to register $3
 addi $3, $3, 0          # 001000 00011 00011 0000 0000 0000 0000    # 20630000              # check if $3 = 0x5EEDBADE
 add $2, $0, $0          # 000000 00000 00000 00010 00000 100000     # 00001020              # reset register $2
-li $2, 0xBE             # 010001 00000 00010 0000 0000 1011 1110    # 440200BE              # load byte 0xBE to register $2
+li $2, 0xDABE           # 010001 00000 00010 1101 1010 1011 1110    # 4402DABE              # load bytes 0xDABE to register $2. This is to test whether non-LSB bytes affect what is stored.
 sb $2, 3($1)            # 101000 00001 00010 0000 0000 0000 0011    # A0220003              # edit 4th byte of memory address 16 to be 0xBE
 lw $3, 0($1)            # 100011 00001 00011 0000 0000 0000 0000    # 8C230000              # load word to register $t3
 addi $3, $3, 0          # 001000 00011 00011 0000 0000 0000 0000    # 20630000              # check if $3 = 0x5EEDBABE
