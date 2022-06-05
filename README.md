@@ -1,4 +1,5 @@
-# Modified Single-cycle MIPS Processor
+# CS 21 Project: Modified Single-cycle MIPS Processor
+_Luis Alvarado, 2019-11112_
 
 ![](docu_assets/datapath_schema.png)
 _Figure 1. Datapath modified to execute more instructions. Modifications i.e. new modules and control lines are colored purple, red (both `li` mods) and green (`ble` mod). Old Control lines are colored blue. Instruction and data lines are colored deep orange.The ALU is also modified, as indicated by the pencil symbol._
@@ -233,14 +234,14 @@ The following code is used to test the correctness of `ble`'s functionality:
 1. We can set the value of register `$1` to be any number we want. We call this number "Z":
     ```mips
     addi $1, $0, 0xZ
-    # 001000 00000 00001 0000 0000 0000 000Z
+    # 001000 00000 00001 0000 0000 0000 ZZZZ
     # 2001000Z (varies depending on Z)
     ```
 
 2. We can set the value of register `$2` to be any number we want. We call this number "Y":
     ```mips
     addi $2, $0, 0xY
-    # 001000 00000 00010 0000 0000 0000 0010
+    # 001000 00000 00010 0000 0000 0000 YYYY
     # 2002000Y (varies depending on Y)
     ```
 
@@ -697,7 +698,7 @@ A0220002
 8C230000
 20630000
 00001020
-440200BE
+4402DABE
 A0220003
 8C230000
 20630000
